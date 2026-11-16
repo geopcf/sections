@@ -259,10 +259,27 @@ mettreAJourTitre();
 // MAP
 // -------
 
-const VUE_INITIALE = {
-  center: [2.58, 46.7],
-  zoom: 6,
-};
+const CENTRE_INITIAL = [2.58, 46.7];
+const ZOOM_INITIAL_MAX = 6;
+const ZOOM_MIN = 4;
+
+// Largeur d'écran à laquelle le zoom 6 cadre bien la France.
+const LARGEUR_REFERENCE = 1365;
+
+function calculerZoomInitial(largeur = window.innerWidth) {
+  const zoom = ZOOM_INITIAL_MAX + Math.log2(largeur / LARGEUR_REFERENCE);
+
+  return Math.max(ZOOM_MIN, Math.min(ZOOM_INITIAL_MAX, zoom));
+}
+
+function calculerVueInitiale(largeur = window.innerWidth) {
+  return {
+    center: CENTRE_INITIAL,
+    zoom: calculerZoomInitial(largeur),
+  };
+}
+
+const VUE_INITIALE = calculerVueInitiale();
 
 const map = new maplibregl.Map({
   container: "map",
@@ -271,7 +288,7 @@ const map = new maplibregl.Map({
     "https://data.geopf.fr/annexes/ressources/vectorTiles/styles/PLAN.IGN/epure.json",
   center: VUE_INITIALE.center,
   zoom: VUE_INITIALE.zoom,
-  minZoom: 5,
+  minZoom: ZOOM_MIN,
   maxZoom: 12,
 });
 
@@ -475,8 +492,7 @@ function revenirVueGlobale() {
   rafraichirMarqueurs();
 
   map.flyTo({
-    center: VUE_INITIALE.center,
-    zoom: VUE_INITIALE.zoom,
+    ...calculerVueInitiale(map.getContainer().clientWidth),
     duration: 1400,
   });
 }
@@ -899,6 +915,23 @@ panneauAPropos.innerHTML = `
       </p>
     </section>
 
+    <section class="a-propos-suivi">
+      <h3>Etape de vérification</h3>
+      <p>
+        La carte agrège des données d'origines diverses, qui peuvent être hétérogènes ou parfois obsolètes. La vie des organisations évolue : des sections se créent, d'autres disparaissent ou fusionnent. Une étape de vérification auprès des différentes fédérations est donc nécessaire pour confirmer l'existence effective des sections et garantir la fiabilité de la carte.
+      </p>
+      <p id="a-propos-suivi-resume" class="a-propos-suivi-resume">
+        Chargement de l’état de vérification…
+      </p>
+      <ul
+        id="a-propos-suivi-liste"
+        class="a-propos-suivi-liste"
+        aria-label="État de vérification des sections par département"
+      >
+        <li class="a-propos-suivi-chargement">Chargement…</li>
+      </ul>
+    </section>
+
     <section>
       <h3>Comment contribuer ?</h3>
       <p>
@@ -944,6 +977,108 @@ panneauAPropos.addEventListener("click", (event) => {
   }
 });
 
+// Suivi de vérification des sections, à partir du champ `suivi` de fede.csv.
+const listeSuivi = panneauAPropos.querySelector("#a-propos-suivi-liste");
+const resumeSuivi = panneauAPropos.querySelector("#a-propos-suivi-resume");
+
+function federationVerifiee(lieu) {
+  const suivi = String(lieu.suivi ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/^\[|\]$/g, "")
+    .trim();
+
+  return suivi === "ok";
+}
+
+function cleTriDepartement(dep) {
+  if (dep === "2A") {
+    return 20.1;
+  }
+
+  if (dep === "2B") {
+    return 20.2;
+  }
+
+  const numero = Number.parseInt(dep, 10);
+
+  return Number.isFinite(numero) ? numero : Number.MAX_SAFE_INTEGER;
+}
+
+function nomDepartement(lieu) {
+  const nom = String(lieu.nom ?? "").trim();
+
+  return (
+    nom
+      .replace(/^fédér\S*\s+/i, "")
+      .replace(/^(de\s+la\s+|de\s+l[’']|du\s+|des\s+|de\s+|d[’'])/i, "")
+      .trim() || nom
+  );
+}
+
+function afficherSuiviVerification(lieux) {
+  const federations = new Map();
+
+  lieux.forEach((lieu) => {
+    if (lieu.type?.trim().toLowerCase() !== "fédération") {
+      return;
+    }
+
+    const dep = String(lieu.dep ?? "").trim();
+
+    if (!dep) {
+      return;
+    }
+
+    const verifie = federationVerifiee(lieu);
+    const existante = federations.get(dep);
+
+    // En cas de doublon de code, conserver l'entrée vérifiée si elle existe.
+    if (!existante || (!existante.verifie && verifie)) {
+      federations.set(dep, {
+        dep,
+        nom: nomDepartement(lieu),
+        verifie,
+      });
+    }
+  });
+
+  const departements = [...federations.values()].sort(
+    (a, b) => cleTriDepartement(a.dep) - cleTriDepartement(b.dep),
+  );
+
+  const nbVerifies = departements.filter((d) => d.verifie).length;
+  const total = departements.length;
+
+  resumeSuivi.textContent = `${nbVerifies} département${
+    nbVerifies === 1 ? "" : "s"
+  } vérifié${nbVerifies === 1 ? "" : "s"} sur ${total}.`;
+
+  const fragment = document.createDocumentFragment();
+
+  departements.forEach(({ dep, nom, verifie }) => {
+    const ligne = document.createElement("li");
+    ligne.className = "a-propos-suivi-ligne";
+
+    const code = document.createElement("span");
+    code.className = "a-propos-suivi-dep";
+    code.textContent = dep;
+
+    const nomElement = document.createElement("span");
+    nomElement.className = "a-propos-suivi-nom";
+    nomElement.textContent = nom;
+
+    const statut = document.createElement("span");
+    statut.className = `a-propos-suivi-statut${verifie ? " est-verifie" : ""}`;
+    statut.textContent = verifie ? "vérifié" : "en cours de vérification";
+
+    ligne.append(code, nomElement, statut);
+    fragment.append(ligne);
+  });
+
+  listeSuivi.replaceChildren(fragment);
+}
+
 // -------
 // DATA
 // -------
@@ -954,6 +1089,8 @@ map.on("load", () => {
 
 map.on("load", async () => {
   const lieux = await fetch_data();
+
+  afficherSuiviVerification(lieux);
 
   // -------
   // MARKS

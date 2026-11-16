@@ -323,6 +323,70 @@ body {
   text-decoration: underline;
 }
 
+.a-propos-suivi-resume {
+  margin-bottom: 8px;
+  color: #536174;
+  font-size: 12.5px;
+}
+
+.a-propos-suivi-liste {
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid rgb(0 0 0 / 8%);
+  list-style: none;
+}
+
+.a-propos-suivi-ligne {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgb(0 0 0 / 6%);
+}
+
+.a-propos-suivi-dep {
+  flex: 0 0 2.2em;
+  color: #536174;
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.a-propos-suivi-nom {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.a-propos-suivi-statut {
+  flex: 0 0 auto;
+  padding: 1px 7px;
+
+  border-radius: 999px;
+  background: #f3eeee;
+  color: #6b7280;
+
+  font-size: 10.5px;
+  font-weight: 600;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+
+.a-propos-suivi-statut.est-verifie {
+  background: #e8f5ec;
+  color: #1a7f37;
+}
+
+.a-propos-suivi-statut.est-verifie::before {
+  content: "✓ ";
+}
+
+.a-propos-suivi-chargement {
+  padding: 6px 0;
+  color: #6b7280;
+  font-size: 12.5px;
+  list-style: none;
+}
+
 .a-propos-liens {
   margin: 8px 0 12px;
   padding-left: 18px;
