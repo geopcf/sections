@@ -1,7 +1,7 @@
 import { defineConfig } from "vite";
 
 export default defineConfig({
-  base: "/sectionspcf/",
+  base: "/sections/",
   build: {
     outDir: "docs",
     emptyOutDir: true,

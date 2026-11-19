@@ -98,7 +98,7 @@ import{m as J}from"./maplibre-GFcYF3F4.js";(function(){const t=document.createEl
           </a>
         </li>
         <li>
-          <a href="https://github.com/neocarto/sectionspcf/issues" target="_blank" rel="noopener noreferrer">
+          <a href="https://github.com/geopcf/sections/issues" target="_blank" rel="noopener noreferrer">
             Ouvrir une issue sur GitHub
           </a>
         </li>
