@@ -918,7 +918,7 @@ panneauAPropos.innerHTML = `
     <section class="a-propos-suivi">
       <h3>Etape de vérification</h3>
       <p>
-        La carte agrège des données d'origines diverses, qui peuvent être hétérogènes ou parfois obsolètes. La vie des organisations évolue : des sections se créent, d'autres disparaissent ou fusionnent. Une étape de vérification auprès des différentes fédérations est donc nécessaire pour confirmer l'existence effective des sections et garantir la fiabilité de la carte.
+        La carte agrège des données d'origines diverses, qui peuvent être hétérogènes ou parfois obsolètes. La vie des organisations évolue : des sections se créent, d'autres disparaissent ou fusionnent. Une étape de vérification auprès des différentes fédérations est donc nécessaire pour confirmer l'existence effective des sections et garantir la fiabilité de la carte. Cette vérification est croisée avec la liste de toutes les sections à jour, figurant dans les annexes au dépôt des comptes d'ensemble du PCF sur le site de la CNCCFP (au 31 décembre 2025).
       </p>
       <p id="a-propos-suivi-resume" class="a-propos-suivi-resume">
         Chargement de l’état de vérification…
@@ -977,18 +977,21 @@ panneauAPropos.addEventListener("click", (event) => {
   }
 });
 
-// Suivi de vérification des sections, à partir du champ `suivi` de fede.csv.
+// Vérification des sections, à partir des champs `check_fede` et
+// `check_CNCCFP` de fede.csv (double check).
 const listeSuivi = panneauAPropos.querySelector("#a-propos-suivi-liste");
 const resumeSuivi = panneauAPropos.querySelector("#a-propos-suivi-resume");
 
-function federationVerifiee(lieu) {
-  const suivi = String(lieu.suivi ?? "")
+function normaliserCheck(valeur) {
+  return String(valeur ?? "")
     .trim()
     .toLowerCase()
     .replace(/^\[|\]$/g, "")
     .trim();
+}
 
-  return suivi === "ok";
+function checkOk(valeur) {
+  return normaliserCheck(valeur) === "ok";
 }
 
 function cleTriDepartement(dep) {
@@ -1030,16 +1033,24 @@ function afficherSuiviVerification(lieux) {
       return;
     }
 
-    const verifie = federationVerifiee(lieu);
+    const checkFede = checkOk(lieu.check_fede);
+    const checkCNCCFP = checkOk(lieu.check_CNCCFP);
     const existante = federations.get(dep);
 
-    // En cas de doublon de code, conserver l'entrée vérifiée si elle existe.
-    if (!existante || (!existante.verifie && verifie)) {
+    // En cas de doublon de code, fusionner les deux checks (OR).
+    if (!existante) {
       federations.set(dep, {
         dep,
         nom: nomDepartement(lieu),
-        verifie,
+        checkFede,
+        checkCNCCFP,
       });
+    } else {
+      existante.checkFede = existante.checkFede || checkFede;
+      existante.checkCNCCFP = existante.checkCNCCFP || checkCNCCFP;
+      if (!existante.nom && nomDepartement(lieu)) {
+        existante.nom = nomDepartement(lieu);
+      }
     }
   });
 
@@ -1047,16 +1058,15 @@ function afficherSuiviVerification(lieux) {
     (a, b) => cleTriDepartement(a.dep) - cleTriDepartement(b.dep),
   );
 
-  const nbVerifies = departements.filter((d) => d.verifie).length;
   const total = departements.length;
+  const nbFede = departements.filter((d) => d.checkFede).length;
+  const nbCNCCFP = departements.filter((d) => d.checkCNCCFP).length;
 
-  resumeSuivi.textContent = `${nbVerifies} département${
-    nbVerifies === 1 ? "" : "s"
-  } vérifié${nbVerifies === 1 ? "" : "s"} sur ${total}.`;
+  resumeSuivi.textContent = `Fédération : ${nbFede}/${total} · CNCCFP : ${nbCNCCFP}/${total}.`;
 
   const fragment = document.createDocumentFragment();
 
-  departements.forEach(({ dep, nom, verifie }) => {
+  departements.forEach(({ dep, nom, checkFede, checkCNCCFP }) => {
     const ligne = document.createElement("li");
     ligne.className = "a-propos-suivi-ligne";
 
@@ -1068,11 +1078,19 @@ function afficherSuiviVerification(lieux) {
     nomElement.className = "a-propos-suivi-nom";
     nomElement.textContent = nom;
 
-    const statut = document.createElement("span");
-    statut.className = `a-propos-suivi-statut${verifie ? " est-verifie" : ""}`;
-    statut.textContent = verifie ? "vérifié" : "en cours de vérification";
+    const badgeFede = document.createElement("span");
+    badgeFede.className = `a-propos-suivi-statut${
+      checkFede ? " est-verifie" : ""
+    }`;
+    badgeFede.textContent = "Fédé";
 
-    ligne.append(code, nomElement, statut);
+    const badgeCNCCFP = document.createElement("span");
+    badgeCNCCFP.className = `a-propos-suivi-statut${
+      checkCNCCFP ? " est-verifie" : ""
+    }`;
+    badgeCNCCFP.textContent = "CNCCFP";
+
+    ligne.append(code, nomElement, badgeFede, badgeCNCCFP);
     fragment.append(ligne);
   });
 
