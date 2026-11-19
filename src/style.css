@@ -841,7 +841,7 @@ INFOBULLES MAPLIBRE
 .maplibregl-popup-content {
   padding: 20px 22px;
   border-radius: 10px;
-  background: #d7b0b0;
+  background: #fff;
   color: #292929;
   box-shadow: 0 8px 30px rgb(0 0 0 / 16%);
 }

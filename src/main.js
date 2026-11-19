@@ -1,5 +1,6 @@
 import maplibregl from "maplibre-gl";
 import "maplibre-gl/dist/maplibre-gl.css";
+import "./style.css";
 import { fetch_data } from "./helpers.js";
 import { json } from "d3-fetch";
 import config from "./config.json";
